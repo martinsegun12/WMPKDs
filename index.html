@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>WMPKD — Handcrafted Chin Chin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#120700;--ink2:#1e0d00;--paper:#F5EDD8;--paper2:#EDE0C4;
+  --gold:#C8922A;--gold2:#E8B96A;--gold3:#a06e18;
+  --cream:#FDF6E3;--text:#2a1200;--text2:#6b4020;
+  --font-d:'Playfair Display',Georgia,serif;
+  --font-b:'Jost',sans-serif;
+  --r:3px;--rl:10px;
+  --sh:0 4px 30px rgba(18,7,0,.12);--shl:0 12px 60px rgba(18,7,0,.22);
+}
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--paper);font-family:var(--font-b);font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img{max-width:100%;display:block}a{text-decoration:none;color:inherit}button{cursor:pointer;font-family:var(--font-b)}
+
+/* PAGE SYSTEM */
+.page{display:none}.page.active{display:block}
+
+/* GRAIN OVERLAY */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.4}
+
+/* ANNOUNCE BAR */
+.abar{background:var(--gold);color:var(--ink);text-align:center;padding:.55rem 3rem;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;position:relative;display:none}
+.abar.show{display:block}
+.abar__close{position:absolute;right:1rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--ink);font-size:16px;cursor:pointer;opacity:.6;line-height:1}
+.abar__close:hover{opacity:1}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:200;background:rgba(18,7,0,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(200,146,42,.15);display:flex;align-items:center;justify-content:space-between;padding:1.1rem 5vw}
+.nav__logo{font-family:var(--font-d);font-size:1.5rem;font-weight:900;letter-spacing:.06em;color:var(--gold);cursor:pointer;display:flex;align-items:center;gap:.6rem;text-transform:uppercase}
+.nav__logo img{height:38px;width:auto;object-fit:contain}
+.nav__links{display:flex;align-items:center;gap:2.5rem}
+.nav__links a{font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:rgba(245,237,216,.6);transition:color .2s;cursor:pointer}
+.nav__links a:hover,.nav__links a.active{color:var(--gold)}
+.nav__right{display:flex;align-items:center;gap:1.2rem}
+.nav__cart{position:relative;display:flex;align-items:center;cursor:pointer;color:rgba(245,237,216,.7);transition:color .2s}
+.nav__cart:hover{color:var(--gold)}
+.cart-count{position:absolute;top:-7px;right:-9px;background:var(--gold);color:var(--ink);font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.nav__btn{background:transparent;color:var(--gold);border:1px solid rgba(200,146,42,.5);padding:.5rem 1.2rem;border-radius:var(--r);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;transition:all .2s}
+.nav__btn:hover,.nav__btn.filled{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.nav__user-menu{position:relative}
+.nav__user-drop{position:absolute;right:0;top:calc(100% + .7rem);background:var(--ink2);border:1px solid rgba(200,146,42,.2);border-radius:var(--rl);min-width:170px;overflow:hidden;display:none;z-index:300;box-shadow:var(--shl)}
+.nav__user-drop.open{display:block}
+.nav__user-drop a{display:block;padding:.8rem 1.2rem;font-size:12px;font-weight:500;letter-spacing:.08em;color:var(--paper);transition:background .2s;cursor:pointer;text-transform:uppercase}
+.nav__user-drop a:hover{background:rgba(200,146,42,.1);color:var(--gold)}
+.nav__user-drop .sep{height:1px;background:rgba(200,146,42,.15)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--font-b);font-size:11px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;padding:.9rem 2.2rem;border-radius:var(--r);cursor:pointer;transition:all .3s ease;border:none}
+.btn--gold{background:var(--gold);color:var(--ink)}
+.btn--gold:hover{background:var(--gold2);transform:translateY(-2px);box-shadow:0 8px 30px rgba(200,146,42,.35)}
+.btn--outline{background:transparent;color:var(--gold);border:1px solid rgba(200,146,42,.5)}
+.btn--outline:hover{background:rgba(200,146,42,.08);border-color:var(--gold)}
+.btn--full{width:100%;justify-content:center}
+.btn--sm{padding:.55rem 1.2rem;font-size:10px}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(10,4,0,.75);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--ink2);border:1px solid rgba(200,146,42,.2);border-radius:var(--rl);padding:2.5rem;width:90%;max-width:420px;position:relative;animation:fadeUp .3s ease}
+.modal__close{position:absolute;top:1rem;right:1.2rem;background:none;border:none;font-size:18px;color:rgba(245,237,216,.4);cursor:pointer;transition:color .2s}
+.modal__close:hover{color:var(--gold)}
+.modal h2{font-family:var(--font-d);font-size:1.9rem;font-weight:700;color:var(--gold);margin-bottom:.2rem}
+.modal p.sub{font-size:12px;color:rgba(245,237,216,.5);margin-bottom:1.8rem;letter-spacing:.06em}
+.tabs-row{display:flex;border-bottom:1px solid rgba(200,146,42,.2);margin-bottom:1.6rem}
+.tab-btn{flex:1;text-align:center;padding:.7rem;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(245,237,216,.4);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(245,237,216,.5);margin-bottom:.4rem}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:.8rem 1rem;border:1px solid rgba(200,146,42,.25);border-radius:var(--r);background:rgba(255,255,255,.04);color:var(--paper);font-family:var(--font-b);font-size:14px;outline:none;transition:border-color .2s;resize:none}
+.form-group input::placeholder{color:rgba(245,237,216,.3)}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--gold);background:rgba(200,146,42,.05)}
+.auth-err{font-size:11px;color:#e07070;margin:.4rem 0;min-height:1em;letter-spacing:.04em}
+
+/* HERO */
+.hero{min-height:95vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:5rem;padding:6rem 5vw;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 60% 50%,rgba(200,146,42,.07) 0%,transparent 70%)}
+.hero__eyebrow{font-size:10px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:1.2rem;display:flex;align-items:center;gap:.8rem}
+.hero__eyebrow::before{content:'';width:32px;height:1px;background:var(--gold)}
+.hero__title{font-family:var(--font-d);font-size:clamp(3.2rem,6.5vw,6rem);font-weight:900;line-height:1.0;color:var(--paper);margin-bottom:1.6rem;letter-spacing:-.01em}
+.hero__title em{font-style:italic;color:var(--gold);display:block}
+.hero__sub{color:rgba(245,237,216,.55);font-size:15px;line-height:1.8;margin-bottom:2.8rem;max-width:400px;font-weight:300}
+.hero__btns{display:flex;gap:1rem;flex-wrap:wrap}
+.hero__visual{position:relative;display:flex;justify-content:center;align-items:center}
+.hero__frame{position:relative;width:440px;height:500px}
+.hero__img-main{width:100%;height:100%;object-fit:cover;border-radius:2px 120px 2px 120px;box-shadow:var(--shl)}
+.hero__frame-deco{position:absolute;inset:-16px;border:1px solid rgba(200,146,42,.25);border-radius:4px 130px 4px 130px;pointer-events:none}
+.hero__frame-badge{position:absolute;bottom:-20px;left:-20px;background:var(--gold);color:var(--ink);width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-d);font-size:.75rem;font-weight:700;line-height:1.2;text-align:center;box-shadow:var(--sh);text-transform:uppercase;letter-spacing:.04em}
+
+/* MARQUEE */
+.marquee-wrap{border-top:1px solid rgba(200,146,42,.15);border-bottom:1px solid rgba(200,146,42,.15);overflow:hidden;padding:.9rem 0;background:rgba(200,146,42,.04)}
+.marquee-track{display:flex;gap:0;animation:marquee 20s linear infinite;width:max-content}
+.marquee-track span{font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:rgba(245,237,216,.35);padding:0 2.5rem}
+.marquee-track span.sep{color:var(--gold);padding:0}
+@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* SECTION */
+.sec-eyebrow{font-size:10px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:.8rem;display:flex;align-items:center;gap:.8rem}
+.sec-eyebrow::before{content:'';width:24px;height:1px;background:var(--gold)}
+.sec-title{font-family:var(--font-d);font-size:clamp(2rem,4vw,3rem);font-weight:800;line-height:1.1;color:var(--paper)}
+.sec-title em{font-style:italic;color:var(--gold)}
+
+/* PILLARS */
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid rgba(200,146,42,.12);border-bottom:1px solid rgba(200,146,42,.12);margin:0 5vw}
+.pillar{padding:3rem 2.5rem;border-right:1px solid rgba(200,146,42,.12)}
+.pillar:last-child{border-right:none}
+.pillar__icon{font-size:1.4rem;margin-bottom:1rem}
+.pillar h3{font-family:var(--font-d);font-size:1.15rem;font-weight:700;color:var(--gold);margin-bottom:.5rem}
+.pillar p{color:rgba(245,237,216,.5);font-size:13px;font-weight:300}
+
+/* PRODUCTS */
+.featured{padding:6rem 5vw}
+.sec-head{margin-bottom:3rem;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:1.5rem}
+.product-card{background:var(--ink2);border:1px solid rgba(200,146,42,.12);border-radius:var(--rl);overflow:hidden;transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease;animation:fadeUp .5s ease both}
+.product-card:hover{transform:translateY(-8px);border-color:rgba(200,146,42,.35);box-shadow:0 20px 60px rgba(200,146,42,.12)}
+.product-card__img{width:100%;height:220px;object-fit:cover;background:rgba(255,255,255,.03)}
+.product-card__body{padding:1.5rem}
+.product-card__new{display:inline-block;background:var(--gold);color:var(--ink);font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:.2rem .7rem;border-radius:100px;margin-bottom:.7rem}
+.product-card__name{font-family:var(--font-d);font-size:1.2rem;font-weight:700;color:var(--paper);margin-bottom:.4rem}
+.product-card__desc{font-size:12px;color:rgba(245,237,216,.45);margin-bottom:1.3rem;line-height:1.6;font-weight:300}
+.product-card__footer{display:flex;align-items:center;justify-content:space-between}
+.product-card__price{font-family:var(--font-d);font-size:1.35rem;font-weight:700;color:var(--gold)}
+.product-card__btn{background:transparent;color:var(--gold);border:1px solid rgba(200,146,42,.4);border-radius:var(--r);padding:.55rem 1.2rem;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;transition:all .2s}
+.product-card__btn:hover{background:var(--gold);color:var(--ink)}
+.product-card__btn.added{background:rgba(45,106,79,.3);color:#7ec8a0;border-color:rgba(45,106,79,.4)}
+.product-skeleton{background:var(--ink2);border:1px solid rgba(200,146,42,.08);border-radius:var(--rl);height:360px;position:relative;overflow:hidden}
+.product-skeleton::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(200,146,42,.06),transparent);animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+/* ABOUT */
+.about{display:grid;grid-template-columns:1fr 1fr;gap:6rem;align-items:center;padding:7rem 5vw;background:var(--ink2);border-top:1px solid rgba(200,146,42,.1);border-bottom:1px solid rgba(200,146,42,.1)}
+.about__img-wrap{position:relative}
+.about__img-wrap img{width:100%;height:520px;object-fit:cover;border-radius:120px 2px 120px 2px}
+.about__img-deco{position:absolute;inset:-14px;border:1px solid rgba(200,146,42,.2);border-radius:130px 4px 130px 4px;pointer-events:none}
+.about__text .sec-title{color:var(--paper);margin-bottom:1.5rem}
+.about__text p{color:rgba(245,237,216,.55);font-size:15px;line-height:1.85;font-weight:300;margin-bottom:1rem}
+
+/* MENU SHOWCASE */
+.menu-section{padding:7rem 5vw}
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1px;background:rgba(200,146,42,.1);border:1px solid rgba(200,146,42,.1)}
+.menu-item{background:var(--ink);padding:2.5rem 2rem;transition:background .3s}
+.menu-item:hover{background:var(--ink2)}
+.menu-item__num{font-size:10px;font-weight:600;letter-spacing:.2em;color:rgba(200,146,42,.4);margin-bottom:.8rem}
+.menu-item__name{font-family:var(--font-d);font-size:1.3rem;font-weight:700;color:var(--paper);margin-bottom:.4rem}
+.menu-item__love{font-size:11px;color:rgba(245,237,216,.35);font-weight:300}
+.menu-item__love strong{color:var(--gold)}
+
+/* TEAM */
+.team{padding:7rem 5vw;text-align:center}
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin-top:3.5rem;max-width:700px;margin-left:auto;margin-right:auto}
+.team-card{text-align:center}
+.team-card__img{width:140px;height:140px;border-radius:50%;object-fit:cover;margin:0 auto 1.2rem;border:2px solid rgba(200,146,42,.3);background:var(--ink2)}
+.team-card__name{font-family:var(--font-d);font-size:1.1rem;font-weight:700;color:var(--gold);letter-spacing:.08em;text-transform:uppercase}
+.team-card__role{font-size:11px;color:rgba(245,237,216,.4);font-weight:300;letter-spacing:.1em;margin-top:.2rem}
+
+/* VISION MISSION */
+.vm{padding:7rem 5vw;background:var(--ink2);border-top:1px solid rgba(200,146,42,.1)}
+.vm-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;margin-top:3rem}
+.vm-card{border:1px solid rgba(200,146,42,.18);padding:2.5rem;border-radius:var(--rl)}
+.vm-card__label{font-size:10px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem}
+.vm-card__text{color:rgba(245,237,216,.6);font-size:15px;line-height:1.8;font-weight:300}
+
+/* CONTACT */
+.contact{padding:7rem 5vw}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center}
+.contact__img{width:100%;height:400px;object-fit:cover;border-radius:2px}
+.contact__info{display:flex;flex-direction:column;gap:1.5rem}
+.contact__item{display:flex;align-items:flex-start;gap:1rem;padding:1.5rem;border:1px solid rgba(200,146,42,.15);border-radius:var(--r)}
+.contact__item-icon{font-size:1.2rem;flex-shrink:0;margin-top:.1rem}
+.contact__item h4{font-family:var(--font-d);font-size:1rem;font-weight:700;color:var(--gold);margin-bottom:.3rem}
+.contact__item p{font-size:13px;color:rgba(245,237,216,.5);font-weight:300}
+
+/* PAGE HEADER */
+.page-header{padding:5rem 5vw 2.5rem;border-bottom:1px solid rgba(200,146,42,.12)}
+.page-header .sec-eyebrow{margin-bottom:.8rem}
+.page-header .sec-title{font-size:clamp(2rem,4vw,2.8rem)}
+
+/* SHOP */
+.shop-section{padding:3rem 5vw 7rem}
+.empty-state{text-align:center;padding:6rem;color:rgba(245,237,216,.4)}
+
+/* CART */
+.cart-section{padding:3rem 5vw 7rem;min-height:50vh}
+.cart-empty{text-align:center;padding:6rem}
+.cart-empty p{color:rgba(245,237,216,.4);margin-bottom:2rem;font-size:16px}
+.cart-layout{display:grid;grid-template-columns:1fr 400px;gap:3rem;align-items:start}
+.cart-items{display:flex;flex-direction:column;gap:1rem}
+.cart-item{display:grid;grid-template-columns:80px 1fr auto;gap:1.2rem;align-items:center;background:var(--ink2);border:1px solid rgba(200,146,42,.12);border-radius:var(--rl);padding:1rem}
+.cart-item__img{width:80px;height:80px;border-radius:var(--r);object-fit:cover;background:rgba(255,255,255,.04)}
+.cart-item__name{font-family:var(--font-d);font-size:1.05rem;font-weight:700;color:var(--paper);margin-bottom:.2rem}
+.cart-item__price{font-size:12px;color:var(--gold);font-weight:500}
+.cart-item__qty{display:flex;align-items:center;gap:.5rem;margin-top:.5rem}
+.cart-item__qty button{width:26px;height:26px;border:1px solid rgba(200,146,42,.25);background:rgba(200,146,42,.06);border-radius:3px;font-size:14px;color:var(--gold);display:flex;align-items:center;justify-content:center;transition:background .2s}
+.cart-item__qty button:hover{background:rgba(200,146,42,.18)}
+.cart-item__qty span{font-weight:600;min-width:20px;text-align:center;color:var(--paper)}
+.cart-item__remove{background:none;border:none;color:rgba(245,237,216,.3);font-size:16px;padding:4px;transition:color .2s}
+.cart-item__remove:hover{color:#e07070}
+.cart-summary{background:var(--ink2);border:1px solid rgba(200,146,42,.18);border-radius:var(--rl);padding:2rem;position:sticky;top:90px}
+.sum-title{font-family:var(--font-d);font-size:1.2rem;font-weight:700;color:var(--gold);margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid rgba(200,146,42,.15)}
+.sum-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;font-size:13px;color:rgba(245,237,216,.5)}
+.sum-row--total{font-family:var(--font-d);font-size:1.15rem;font-weight:700;color:var(--paper);border-top:1px solid rgba(200,146,42,.15);padding-top:1rem;margin-top:.5rem}
+.checkout-form{margin-top:1.8rem;padding-top:1.5rem;border-top:1px solid rgba(200,146,42,.12)}
+
+/* PROFILE */
+.profile-section{padding:3rem 5vw 7rem;min-height:60vh}
+.profile-grid{display:grid;grid-template-columns:260px 1fr;gap:2rem;align-items:start}
+.profile-card{background:var(--ink2);border:1px solid rgba(200,146,42,.15);border-radius:var(--rl);overflow:hidden}
+.profile-card__head{background:linear-gradient(135deg,var(--gold3),var(--gold));padding:2rem;text-align:center}
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:rgba(18,7,0,.4);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:1.8rem;font-weight:900;color:var(--ink);margin:0 auto 1rem;border:2px solid rgba(18,7,0,.2)}
+.profile-name{font-family:var(--font-d);font-size:1.1rem;font-weight:700;color:var(--ink)}
+.profile-email{font-size:11px;color:rgba(18,7,0,.55);margin-top:.2rem;font-weight:500}
+.profile-card__links{padding:.8rem 0}
+.profile-card__links a{display:flex;align-items:center;gap:.8rem;padding:.75rem 1.5rem;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(245,237,216,.5);cursor:pointer;transition:all .2s}
+.profile-card__links a:hover,.profile-card__links a.active{background:rgba(200,146,42,.08);color:var(--gold)}
+.orders-list{display:flex;flex-direction:column;gap:1.2rem}
+.order-card{background:var(--ink2);border:1px solid rgba(200,146,42,.12);border-radius:var(--rl);overflow:hidden}
+.order-card__head{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 1.5rem;border-bottom:1px solid rgba(200,146,42,.1)}
+.order-card__id{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(245,237,216,.4)}
+.order-card__date{font-size:11px;color:rgba(245,237,216,.35)}
+.order-card__body{padding:1.2rem 1.5rem}
+.order-card__items{font-size:13px;color:rgba(245,237,216,.5);margin-bottom:.8rem;font-weight:300}
+.order-card__footer{display:flex;align-items:center;justify-content:space-between}
+.order-card__total{font-family:var(--font-d);font-size:1.15rem;font-weight:700;color:var(--gold)}
+.badge{display:inline-flex;align-items:center;padding:.22rem .75rem;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.badge--pending{background:rgba(254,243,199,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.2)}
+.badge--confirmed{background:rgba(209,250,229,.08);color:#34d399;border:1px solid rgba(52,211,153,.2)}
+.badge--delivered{background:rgba(219,234,254,.08);color:#60a5fa;border:1px solid rgba(96,165,250,.2)}
+.badge--cancelled{background:rgba(254,226,226,.08);color:#f87171;border:1px solid rgba(248,113,113,.2)}
+.no-orders{text-align:center;padding:4rem 2rem;color:rgba(245,237,216,.35)}
+
+/* FOOTER */
+.footer{background:rgba(10,4,0,.98);border-top:1px solid rgba(200,146,42,.15);padding:4rem 5vw 2rem}
+.footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:3rem;margin-bottom:3rem}
+.footer-brand__logo{font-family:var(--font-d);font-size:1.6rem;font-weight:900;color:var(--gold);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.6rem}
+.footer-brand__logo img{height:36px;object-fit:contain;margin-bottom:.4rem}
+.footer-brand p{font-size:12px;color:rgba(245,237,216,.35);font-weight:300;line-height:1.7}
+.footer-col h4{font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:1.2rem}
+.footer-col a{display:block;font-size:12px;color:rgba(245,237,216,.4);margin-bottom:.6rem;cursor:pointer;transition:color .2s;font-weight:300}
+.footer-col a:hover{color:var(--gold)}
+.footer-bottom{border-top:1px solid rgba(200,146,42,.1);padding-top:1.5rem;display:flex;align-items:center;justify-content:space-between}
+.footer-bottom p{font-size:11px;color:rgba(245,237,216,.25);font-weight:300}
+
+/* TOAST */
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(80px);background:var(--gold);color:var(--ink);padding:.8rem 2rem;border-radius:100px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;box-shadow:var(--shl);transition:transform .3s ease;z-index:999;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* RESPONSIVE */
+@media(max-width:960px){
+  .hero{grid-template-columns:1fr;min-height:unset;text-align:center;gap:3rem}
+  .hero__sub{margin:0 auto 2.8rem}
+  .hero__btns{justify-content:center}
+  .hero__visual{order:-1}
+  .hero__frame{width:300px;height:340px}
+  .pillars{grid-template-columns:1fr}
+  .pillar{border-right:none;border-bottom:1px solid rgba(200,146,42,.12)}
+  .pillar:last-child{border-bottom:none}
+  .about{grid-template-columns:1fr;gap:3rem}
+  .about__img-wrap img{height:300px}
+  .menu-grid{grid-template-columns:1fr 1fr}
+  .team-grid{grid-template-columns:1fr 1fr 1fr}
+  .vm-grid{grid-template-columns:1fr}
+  .contact-grid{grid-template-columns:1fr}
+  .cart-layout{grid-template-columns:1fr}
+  .cart-summary{position:static}
+  .footer-grid{grid-template-columns:1fr 1fr}
+  .profile-grid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .nav__links{display:none}
+  .products-grid{grid-template-columns:1fr}
+  .team-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr}
+  .cart-item{grid-template-columns:70px 1fr auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ANNOUNCEMENT BAR -->
+<div class="abar" id="abar">
+  <span id="abarText">🎉 New arrival: Spicy Pepper Chin Chin — Limited stock!</span>
+  <button class="abar__close" onclick="this.parentElement.classList.remove('show')">✕</button>
+</div>
+
+<!-- NAV -->
+<nav class="nav" id="mainNav">
+  <span class="nav__logo" id="navLogo" onclick="nav('home')">WMPKD</span>
+  <div class="nav__links">
+    <a onclick="nav('shop')" id="nlShop">Shop</a>
+    <a onclick="nav('home','#about')">About</a>
+    <a onclick="nav('home','#menu')">Menu</a>
+    <a onclick="nav('home','#contact')">Contact</a>
+  </div>
+  <div class="nav__right">
+    <span class="nav__cart" onclick="nav('cart')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <span class="cart-count" id="cartBadge">0</span>
+    </span>
+    <div id="authBtns" style="display:flex;gap:.6rem">
+      <button class="nav__btn" onclick="openModal('login')">Login</button>
+      <button class="nav__btn filled" onclick="openModal('register')">Sign Up</button>
+    </div>
+    <div class="nav__user-menu" id="userMenu" style="display:none">
+      <button class="nav__btn" onclick="toggleDrop()" id="userBtn">👤 <span id="userFirst">You</span> ▾</button>
+      <div class="nav__user-drop" id="userDrop">
+        <a onclick="nav('profile');toggleDrop()">My Orders</a>
+        <div class="sep"></div>
+        <a onclick="doSignOut()">Sign Out</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- AUTH MODAL -->
+<div class="modal-bg" id="authModal">
+  <div class="modal">
+    <button class="modal__close" onclick="closeModal()">✕</button>
+    <h2>Welcome</h2>
+    <p class="sub">Your chin chin awaits.</p>
+    <div class="tabs-row">
+      <div class="tab-btn active" id="tb-login" onclick="switchTab('login')">Login</div>
+      <div class="tab-btn" id="tb-register" onclick="switchTab('register')">Register</div>
+    </div>
+    <div class="tab-pane active" id="tp-login">
+      <div class="form-group"><label>Email</label><input type="email" id="lEmail" placeholder="you@email.com"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="lPw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <div class="auth-err" id="lErr"></div>
+      <button class="btn btn--gold btn--full" style="margin-top:.4rem" onclick="doLogin()">Login</button>
+    </div>
+    <div class="tab-pane" id="tp-register">
+      <div class="form-group"><label>Full Name</label><input type="text" id="rName" placeholder="Your full name"/></div>
+      <div class="form-group"><label>Email</label><input type="email" id="rEmail" placeholder="you@email.com"/></div>
+      <div class="form-group"><label>Phone</label><input type="tel" id="rPhone" placeholder="08012345678"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="rPw" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')doRegister()"/></div>
+      <div class="auth-err" id="rErr"></div>
+      <button class="btn btn--gold btn--full" style="margin-top:.4rem" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HOME ═══ -->
+<div class="page active" id="page-home">
+  <section class="hero">
+    <div class="hero__text">
+      <p class="hero__eyebrow">Handcrafted in Benin City</p>
+      <h1 class="hero__title">Chin Chin<em>worth savouring.</em></h1>
+      <p class="hero__sub">Small-batch, golden-fried, made with love. Fresh every week. Order yours today.</p>
+      <div class="hero__btns">
+        <button class="btn btn--gold" onclick="nav('shop')">Shop Now</button>
+        <button class="btn btn--outline" onclick="nav('home','#about')">Our Story</button>
+      </div>
+    </div>
+    <div class="hero__visual">
+      <div class="hero__frame">
+        <img id="heroImg" src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=700&q=80" alt="Chin Chin" class="hero__img-main"/>
+        <div class="hero__frame-deco"></div>
+        <div class="hero__frame-badge">Fresh<br/>Every<br/>Week</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="marquee-wrap">
+    <div class="marquee-track" id="marqueeTrack">
+      <span>Handcrafted</span><span class="sep">✦</span><span>Small Batch</span><span class="sep">✦</span><span>No Preservatives</span><span class="sep">✦</span><span>Campus Delivery</span><span class="sep">✦</span><span>Made Fresh</span><span class="sep">✦</span><span>Order via WhatsApp</span><span class="sep">✦</span>
+      <span>Handcrafted</span><span class="sep">✦</span><span>Small Batch</span><span class="sep">✦</span><span>No Preservatives</span><span class="sep">✦</span><span>Campus Delivery</span><span class="sep">✦</span><span>Made Fresh</span><span class="sep">✦</span><span>Order via WhatsApp</span><span class="sep">✦</span>
+    </div>
+  </div>
+
+  <section class="pillars">
+    <div class="pillar"><div class="pillar__icon">✦</div><h3>Small-Batch</h3><p>Made in limited quantities every week for maximum freshness and quality.</p></div>
+    <div class="pillar"><div class="pillar__icon">✦</div><h3>No Preservatives</h3><p>Just flour, butter, spice and care. Nothing artificial, ever.</p></div>
+    <div class="pillar"><div class="pillar__icon">✦</div><h3>Campus Delivery</h3><p>Delivering across Uniben campus and environs, fast and fresh.</p></div>
+  </section>
+
+  <section class="featured">
+    <div class="sec-head">
+      <div><p class="sec-eyebrow">Most Loved</p><h2 class="sec-title">Our <em>Bestsellers</em></h2></div>
+      <button class="btn btn--outline btn--sm" onclick="nav('shop')">View All</button>
+    </div>
+    <div class="products-grid" id="featuredGrid">
+      <div class="product-skeleton"></div><div class="product-skeleton"></div><div class="product-skeleton"></div>
+    </div>
+  </section>
+
+  <section class="about" id="about">
+    <div class="about__img-wrap">
+      <img id="aboutImg" src="https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=700&q=80" alt="About WMPKD"/>
+      <div class="about__img-deco"></div>
+    </div>
+    <div class="about__text">
+      <p class="sec-eyebrow">The Story</p>
+      <h2 class="sec-title">Made by a student,<br/><em>for everyone.</em></h2>
+      <p>WMPKD was born out of a passion for great snacks and a desire to bring quality chin chin to every corner of Uniben. Every pack is fried fresh, seasoned perfectly, and sealed with pride.</p>
+      <p>Whether you want a light snack between lectures or a bulk order for an event — we've got you covered.</p>
+      <button class="btn btn--gold" onclick="nav('shop')" style="margin-top:1rem">Order Now</button>
+    </div>
+  </section>
+
+  <section class="menu-section" id="menu">
+    <div style="margin-bottom:3rem;text-align:center">
+      <p class="sec-eyebrow" style="justify-content:center">Flavours</p>
+      <h2 class="sec-title">Our Most <em>Popular</em></h2>
+    </div>
+    <div class="menu-grid" id="menuGrid">
+      <div class="menu-item"><div class="menu-item__num">01</div><div class="menu-item__name">Classic Chin Chin</div><div class="menu-item__love">Loading...</div></div>
+    </div>
+  </section>
+
+  <section class="vm">
+    <div style="text-align:center;margin-bottom:1rem">
+      <p class="sec-eyebrow" style="justify-content:center">Who We Are</p>
+      <h2 class="sec-title">Vision & <em>Mission</em></h2>
+    </div>
+    <div class="vm-grid">
+      <div class="vm-card"><div class="vm-card__label">Vision</div><div class="vm-card__text">To become the most beloved small-batch snack brand in Benin City — known for quality, freshness, and heart in every pack.</div></div>
+      <div class="vm-card"><div class="vm-card__label">Mission</div><div class="vm-card__text">Maintaining the quality of every ingredient, frying every batch with care, and delivering happiness to every customer, every single time.</div></div>
+    </div>
+  </section>
+
+  <section class="contact" id="contact">
+    <div class="contact-grid">
+      <img id="contactImg" src="https://images.unsplash.com/photo-1514190051997-0f6f39ca5cde?w=700&q=80" alt="Contact" class="contact__img"/>
+      <div>
+        <p class="sec-eyebrow">Reach Us</p>
+        <h2 class="sec-title" style="margin-bottom:2rem">Contact <em>Us</em></h2>
+        <div class="contact__info">
+          <div class="contact__item"><div class="contact__item-icon">📱</div><div><h4>WhatsApp</h4><p>+234 904 326 8478</p></div></div>
+          <div class="contact__item"><div class="contact__item-icon">📍</div><div><h4>Location</h4><p>Uniben Campus & Environs, Benin City</p></div></div>
+          <div class="contact__item"><div class="contact__item-icon">⏰</div><div><h4>Hours</h4><p>Mon–Sat: 8am – 8pm</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-brand__logo" id="footerLogo">WMPKD</div>
+        <p>Handcrafted chin chin made with love in Benin City. Small-batch, no preservatives, fresh every week.</p>
+      </div>
+      <div class="footer-col"><h4>Navigate</h4><a onclick="nav('shop')">Shop</a><a onclick="nav('cart')">Cart</a><a onclick="nav('home','#about')">About</a><a onclick="nav('home','#menu')">Menu</a></div>
+      <div class="footer-col"><h4>Account</h4><a onclick="openModal('login')">Login</a><a onclick="openModal('register')">Register</a><a onclick="nav('profile')">My Orders</a></div>
+      <div class="footer-col"><h4>Contact</h4><a>+234 904 326 8478</a><a>Uniben Campus</a><a>Benin City, Nigeria</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2025 WMPKD. All rights reserved.</p><p>Made with love in Benin City</p></div>
+  </footer>
+</div>
+
+<!-- ═══ SHOP ═══ -->
+<div class="page" id="page-shop">
+  <div class="page-header"><p class="sec-eyebrow">Fresh & Golden</p><h1 class="sec-title">Our <em>Products</em></h1></div>
+  <section class="shop-section">
+    <div class="products-grid" id="shopGrid"><div class="product-skeleton"></div><div class="product-skeleton"></div><div class="product-skeleton"></div></div>
+    <div id="shopEmpty" class="empty-state" style="display:none"><p>No products yet — check back soon!</p></div>
+  </section>
+  <div class="toast" id="shopToast"></div>
+</div>
+
+<!-- ═══ CART ═══ -->
+<div class="page" id="page-cart">
+  <div class="page-header"><p class="sec-eyebrow">Your Selection</p><h1 class="sec-title">Your <em>Cart</em></h1></div>
+  <section class="cart-section">
+    <div class="cart-empty" id="cartEmpty"><p>Your cart is empty.</p><button class="btn btn--gold" onclick="nav('shop')">Browse Products</button></div>
+    <div class="cart-layout" id="cartLayout" style="display:none">
+      <div class="cart-items" id="cartItems"></div>
+      <div class="cart-summary">
+        <div class="sum-title">Order Summary</div>
+        <div class="sum-row"><span>Subtotal</span><span id="subTotal">₦0</span></div>
+        <div class="sum-row"><span>Delivery</span><span>Discussed via WhatsApp</span></div>
+        <div class="sum-row sum-row--total"><span>Total</span><span id="totalDisp">₦0</span></div>
+        <div class="checkout-form">
+          <div class="sum-title" style="margin-bottom:1.2rem">Your Details</div>
+          <div class="form-group"><label>Full Name</label><input type="text" id="cName" placeholder="Amaka Johnson"/></div>
+          <div class="form-group"><label>Phone</label><input type="tel" id="cPhone" placeholder="08012345678"/></div>
+          <div class="form-group"><label>Delivery Address</label><input type="text" id="cAddr" placeholder="UNIBEN Hostel Block C"/></div>
+          <div class="form-group"><label>Note (optional)</label><textarea id="cNote" rows="3" placeholder="Special instructions..."></textarea></div>
+          <button class="btn btn--gold btn--full" id="checkoutBtn" onclick="submitOrder()">
+            Send Order via WhatsApp
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 0C5.374 0 0 5.373 0 12c0 2.116.554 4.103 1.523 5.824L.057 23.007a1 1 0 001.229 1.228l5.241-1.455A11.945 11.945 0 0012 24c6.626 0 12-5.373 12-12S18.624 0 11.998 0zm0 22c-1.895 0-3.67-.5-5.21-1.378l-.371-.213-3.107.863.88-3.03-.233-.383A9.947 9.947 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="toast" id="cartToast"></div>
+</div>
+
+<!-- ═══ PROFILE ═══ -->
+<div class="page" id="page-profile">
+  <div class="page-header"><p class="sec-eyebrow">My Account</p><h1 class="sec-title">Your <em>Orders</em></h1></div>
+  <section class="profile-section">
+    <div class="profile-grid">
+      <div>
+        <div class="profile-card">
+          <div class="profile-card__head">
+            <div class="profile-avatar" id="pAvatar">?</div>
+            <div class="profile-name" id="pName">—</div>
+            <div class="profile-email" id="pEmail">—</div>
+          </div>
+          <div class="profile-card__links">
+            <a class="active">📦 My Orders</a>
+            <a onclick="doSignOut();nav('home')">🚪 Sign Out</a>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div id="ordersLoading" style="text-align:center;padding:3rem;color:rgba(245,237,216,.4)">Loading your orders...</div>
+        <div class="orders-list" id="ordersList" style="display:none"></div>
+        <div class="no-orders" id="noOrders" style="display:none"><p style="margin-bottom:1.5rem">No orders yet.</p><button class="btn btn--gold" onclick="nav('shop')">Shop Now</button></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="globalToast"></div>
+
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyDStRWH7a248AedeRgLVRHwmV4u5jpycFM",
+  authDomain:"winnes-collection.firebaseapp.com",
+  projectId:"winnes-collection",
+  storageBucket:"winnes-collection.firebasestorage.app",
+  messagingSenderId:"244146153485",
+  appId:"1:244146153485:web:effc3faa893370db8b8d44"
+});
+const db=firebase.firestore(), auth=firebase.auth(), WA='2349043268478';
+
+// CART
+const getCart=()=>{try{return JSON.parse(localStorage.getItem('wmpkd_cart'))||[];}catch{return[];}};
+const saveCart=c=>localStorage.setItem('wmpkd_cart',JSON.stringify(c));
+const cartTotal=c=>c.reduce((s,i)=>s+i.price*i.qty,0);
+function addToCart(p){const c=getCart(),ex=c.find(i=>i.id===p.id);ex?ex.qty++:c.push({id:p.id,name:p.name,price:p.price,imageUrl:p.imageUrl||'',qty:1});saveCart(c);}
+function removeFromCart(id){saveCart(getCart().filter(i=>i.id!==id));}
+function updQty(id,d){const c=getCart(),it=c.find(i=>i.id===id);if(it)it.qty=Math.max(1,it.qty+d);saveCart(c);}
+function clearCart(){localStorage.removeItem('wmpkd_cart');}
+function updateBadge(){document.querySelectorAll('.cart-count,#cartBadge').forEach(el=>el.textContent=getCart().reduce((s,i)=>s+i.qty,0));}
+
+// NAV
+function nav(page,hash){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  window.scrollTo(0,0); updateBadge();
+  document.getElementById('nlShop')?.classList.toggle('active',page==='shop');
+  if(page==='shop')loadShop();
+  if(page==='home'){loadFeatured();loadMenuGrid();if(hash)setTimeout(()=>document.querySelector(hash)?.scrollIntoView({behavior:'smooth'}),120);}
+  if(page==='cart')renderCart();
+  if(page==='profile'){if(!auth.currentUser){openModal('login');return;}loadProfile();}
+}
+
+// AUTH MODAL
+function openModal(tab){document.getElementById('authModal').classList.add('open');switchTab(tab||'login');}
+function closeModal(){document.getElementById('authModal').classList.remove('open');}
+function switchTab(t){['login','register'].forEach(x=>{document.getElementById('tb-'+x).classList.toggle('active',x===t);document.getElementById('tp-'+x).classList.toggle('active',x===t);});}
+document.getElementById('authModal').addEventListener('click',e=>{if(e.target===document.getElementById('authModal'))closeModal();});
+function toggleDrop(){document.getElementById('userDrop').classList.toggle('open');}
+document.addEventListener('click',e=>{const m=document.getElementById('userDrop');if(m&&!document.getElementById('userMenu').contains(e.target))m.classList.remove('open');});
+
+function doLogin(){
+  const email=document.getElementById('lEmail').value.trim(),pw=document.getElementById('lPw').value;
+  document.getElementById('lErr').textContent='';
+  if(!email||!pw){document.getElementById('lErr').textContent='Please fill all fields.';return;}
+  auth.signInWithEmailAndPassword(email,pw).then(()=>closeModal()).catch(e=>document.getElementById('lErr').textContent=fErr(e.code));
+}
+function doRegister(){
+  const name=document.getElementById('rName').value.trim(),email=document.getElementById('rEmail').value.trim(),phone=document.getElementById('rPhone').value.trim(),pw=document.getElementById('rPw').value;
+  document.getElementById('rErr').textContent='';
+  if(!name||!email||!pw){document.getElementById('rErr').textContent='Please fill all fields.';return;}
+  auth.createUserWithEmailAndPassword(email,pw).then(cred=>Promise.all([cred.user.updateProfile({displayName:name}),db.collection('users').doc(cred.user.uid).set({name,email,phone,createdAt:firebase.firestore.FieldValue.serverTimestamp()})]))
+    .then(()=>closeModal()).catch(e=>document.getElementById('rErr').textContent=fErr(e.code));
+}
+function doSignOut(){auth.signOut().then(()=>{nav('home');showToast('globalToast','Signed out.');})}
+function fErr(c){const m={'auth/user-not-found':'No account found.','auth/wrong-password':'Wrong password.','auth/email-already-in-use':'Email already registered.','auth/weak-password':'Password too short.','auth/invalid-email':'Invalid email.'};return m[c]||'Error. Try again.';}
+
+auth.onAuthStateChanged(u=>{
+  document.getElementById('authBtns').style.display=u?'none':'flex';
+  document.getElementById('userMenu').style.display=u?'block':'none';
+  if(u)document.getElementById('userFirst').textContent=u.displayName?.split(' ')[0]||'You';
+});
+
+// PRODUCTS
+function makeCard(p,i){
+  const inCart=getCart().some(c=>c.id===p.id);
+  const d=document.createElement('div');d.className='product-card';d.style.animationDelay=`${i*.1}s`;
+  d.innerHTML=`<img class="product-card__img" src="${p.imageUrl||'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=70'}" onerror="this.src='https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=70'" alt="${p.name}"/>
+  <div class="product-card__body">
+    ${p.isNew?'<span class="product-card__new">✨ New Arrival</span>':''}
+    <div class="product-card__name">${p.name}</div>
+    <div class="product-card__desc">${p.description||''}</div>
+    <div class="product-card__footer">
+      <div class="product-card__price">₦${Number(p.price).toLocaleString()}</div>
+      <button class="product-card__btn ${inCart?'added':''}" onclick="handleAdd(this,${JSON.stringify(p).replace(/"/g,'&quot;')})">${inCart?'✓ Added':'Add to Cart'}</button>
+    </div>
+  </div>`;
+  return d;
+}
+function handleAdd(btn,p){addToCart(p);btn.textContent='✓ Added';btn.classList.add('added');updateBadge();showToast('shopToast',`${p.name} added`);}
+
+async function loadFeatured(){
+  const g=document.getElementById('featuredGrid');if(!g)return;
+  try{const snap=await db.collection('products').orderBy('createdAt','desc').limit(3).get();g.innerHTML='';snap.docs.map(d=>({id:d.id,...d.data()})).forEach((p,i)=>g.appendChild(makeCard(p,i)));if(snap.empty)g.innerHTML='<p style="color:rgba(245,237,216,.4);padding:2rem">Coming soon!</p>';}
+  catch(e){g.innerHTML='';}
+}
+async function loadShop(){
+  const g=document.getElementById('shopGrid');if(!g)return;
+  g.innerHTML='<div class="product-skeleton"></div><div class="product-skeleton"></div><div class="product-skeleton"></div>';
+  try{const snap=await db.collection('products').orderBy('createdAt','desc').get();g.innerHTML='';const list=snap.docs.map(d=>({id:d.id,...d.data()}));if(!list.length){document.getElementById('shopEmpty').style.display='block';return;}list.forEach((p,i)=>g.appendChild(makeCard(p,i)));}
+  catch(e){g.innerHTML='<p style="color:#e07070;padding:2rem">Could not load. Check connection.</p>';}
+}
+async function loadMenuGrid(){
+  try{const snap=await db.collection('products').orderBy('createdAt','desc').get();const list=snap.docs.map(d=>({id:d.id,...d.data()}));const g=document.getElementById('menuGrid');if(!list.length){g.innerHTML='<div class="menu-item"><div class="menu-item__name">Products loading...</div></div>';return;}g.innerHTML=list.map((p,i)=>`<div class="menu-item"><div class="menu-item__num">${String(i+1).padStart(2,'0')}</div><div class="menu-item__name">${p.name}</div><div class="menu-item__love">₦${Number(p.price).toLocaleString()} · ${p.description||'Handcrafted chin chin'}</div></div>`).join('');}
+  catch(e){}
+}
+
+// CART
+function renderCart(){
+  const cart=getCart(),empty=document.getElementById('cartEmpty'),layout=document.getElementById('cartLayout'),items=document.getElementById('cartItems');
+  updateBadge();
+  if(!cart.length){empty.style.display='block';layout.style.display='none';return;}
+  empty.style.display='none';layout.style.display='grid';
+  items.innerHTML=cart.map(it=>`<div class="cart-item">
+    <img class="cart-item__img" src="${it.imageUrl||'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=200&q=60'}" onerror="this.src='https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=200&q=60'"/>
+    <div>
+      <div class="cart-item__name">${it.name}</div>
+      <div class="cart-item__price">₦${Number(it.price).toLocaleString()} each</div>
+      <div class="cart-item__qty">
+        <button onclick="updQty('${it.id}',-1);renderCart()">−</button>
+        <span>${it.qty}</span>
+        <button onclick="updQty('${it.id}',+1);renderCart()">+</button>
+      </div>
+    </div>
+    <button class="cart-item__remove" onclick="removeFromCart('${it.id}');renderCart()">✕</button>
+  </div>`).join('');
+  const sub=cartTotal(cart);
+  document.getElementById('subTotal').textContent='₦'+sub.toLocaleString();
+  document.getElementById('totalDisp').textContent='₦'+sub.toLocaleString();
+  const u=auth.currentUser;if(u&&!document.getElementById('cName').value)document.getElementById('cName').value=u.displayName||'';
+}
+async function submitOrder(){
+  const name=document.getElementById('cName').value.trim(),phone=document.getElementById('cPhone').value.trim(),addr=document.getElementById('cAddr').value.trim(),note=document.getElementById('cNote').value.trim();
+  if(!name||!phone||!addr){showToast('cartToast','Fill in name, phone & address.');return;}
+  const cart=getCart();if(!cart.length){showToast('cartToast','Cart is empty!');return;}
+  const total=cartTotal(cart),btn=document.getElementById('checkoutBtn');
+  btn.disabled=true;btn.textContent='Processing...';
+  const u=auth.currentUser;
+  try{await db.collection('orders').add({customerName:name,customerPhone:phone,deliveryAddress:addr,note,items:cart,total,status:'pending',userId:u?u.uid:null,userEmail:u?u.email:null,createdAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){console.warn(e);}
+  const msg=`🛍️ *New WMPKD Order*\n\n*Customer:* ${name}\n*Phone:* ${phone}\n*Address:* ${addr}\n${note?`*Note:* ${note}\n`:''}\n*Items:*\n${cart.map(i=>`• ${i.name} x${i.qty} = ₦${(i.price*i.qty).toLocaleString()}`).join('\n')}\n\n*Total: ₦${total.toLocaleString()}*\n\n_Sent from WMPKD website_`;
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
+  clearCart();btn.textContent='Order Sent! ✓';btn.style.background='rgba(45,106,79,.6)';
+  showToast('cartToast','Order sent! Check WhatsApp.');
+  setTimeout(()=>{renderCart();btn.disabled=false;btn.textContent='Send Order via WhatsApp';btn.style.background='';},2500);
+}
+
+// PROFILE
+function loadProfile(){
+  const u=auth.currentUser;if(!u)return;
+  document.getElementById('pName').textContent=u.displayName||'Customer';
+  document.getElementById('pEmail').textContent=u.email;
+  document.getElementById('pAvatar').textContent=(u.displayName||'?')[0].toUpperCase();
+  const loading=document.getElementById('ordersLoading'),list=document.getElementById('ordersList'),none=document.getElementById('noOrders');
+  loading.style.display='block';list.style.display='none';none.style.display='none';
+  db.collection('orders').where('userId','==',u.uid).orderBy('createdAt','desc').get()
+    .then(snap=>{loading.style.display='none';if(snap.empty){none.style.display='block';return;}list.style.display='flex';list.innerHTML=snap.docs.map(doc=>{const o={id:doc.id,...doc.data()};const date=o.createdAt?.toDate?.()?o.createdAt.toDate().toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}):'—';return`<div class="order-card"><div class="order-card__head"><span class="order-card__id">Order #${o.id.slice(-6).toUpperCase()}</span><span class="order-card__date">${date}</span></div><div class="order-card__body"><div class="order-card__items">${(o.items||[]).map(i=>i.name+' ×'+i.qty).join(', ')}</div>${o.deliveryAddress?`<div style="font-size:12px;color:rgba(245,237,216,.35);margin-bottom:.8rem">📍 ${o.deliveryAddress}</div>`:''}<div class="order-card__footer"><span class="order-card__total">₦${Number(o.total).toLocaleString()}</span><span class="badge badge--${o.status||'pending'}">${o.status||'pending'}</span></div></div></div>`;}).join('');}).catch(e=>{loading.style.display='none';console.error(e);});
+}
+
+// SETTINGS
+function loadSiteSettings(){
+  db.collection('settings').doc('site').get().then(doc=>{
+    if(!doc.exists)return;const s=doc.data();
+    if(s.logoUrl){const logoHtml=`<img src="${s.logoUrl}" alt="WMPKD" style="height:36px;object-fit:contain">`;document.getElementById('navLogo').innerHTML=logoHtml;const fl=document.getElementById('footerLogo');if(fl)fl.innerHTML=`<img src="${s.logoUrl}" alt="WMPKD" style="height:30px;object-fit:contain;margin-bottom:.4rem">`;}
+    if(s.heroUrl)document.getElementById('heroImg').src=s.heroUrl;
+    if(s.aboutUrl)document.getElementById('aboutImg').src=s.aboutUrl;
+    if(s.contactUrl)document.getElementById('contactImg').src=s.contactUrl;
+  }).catch(()=>{});
+}
+function loadAnnouncement(){
+  db.collection('settings').doc('announcement').get().then(doc=>{
+    if(doc.exists&&doc.data().active&&doc.data().text){document.getElementById('abarText').textContent=doc.data().text;document.getElementById('abar').classList.add('show');}
+  }).catch(()=>{});
+}
+
+// TOAST
+function showToast(id,msg){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2800);}
+
+// INIT
+loadFeatured();loadMenuGrid();updateBadge();loadSiteSettings();loadAnnouncement();
+</script>
+</body>
+</html>
