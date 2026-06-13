@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Products - WMPKD</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/12.14.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore-compat.js"></script>
+  <style> 
+    body { font-family: 'Inter', system-ui, sans-serif; } 
+    .product-card {
+      transition: all 0.3s ease;
+    }
+    .product-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    }
+    .product-image {
+      transition: transform 0.4s ease;
+    }
+    .product-card:hover .product-image {
+      transform: scale(1.08);
+    }
+  </style>
+</head>
+<body class="bg-[#f8f1e3] text-gray-900">
+
+  <!-- Navbar -->
+  <nav class="bg-white shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="text-3xl font-bold text-orange-600">WMPKD</div>
+      <div class="hidden md:flex gap-8 text-lg font-medium">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="products.html" class="text-orange-600">Products</a>
+        <a href="cart.html">Cart <span id="cart-count" class="bg-orange-600 text-white text-xs px-2 py-0.5 rounded-full">0</span></a>
+        <a href="contact.html">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="py-12">
+    <div class="max-w-7xl mx-auto px-6">
+      <h1 class="text-4xl font-bold text-center mb-4">OUR SNACKS</h1>
+      <p class="text-center text-gray-600 mb-10">Freshly made • Crunchy • Affordable</p>
+
+      <!-- Category Filters -->
+      <div class="flex flex-wrap justify-center gap-3 mb-12">
+        <button onclick="filterCategory('all')" class="px-6 py-2 bg-orange-600 text-white rounded-full font-medium">All Snacks</button>
+        <button onclick="filterCategory('crunchy')" class="px-6 py-2 bg-white border border-gray-300 hover:border-orange-600 rounded-full font-medium">Crunchy</button>
+        <button onclick="filterCategory('sweet')" class="px-6 py-2 bg-white border border-gray-300 hover:border-orange-600 rounded-full font-medium">Sweet</button>
+        <button onclick="filterCategory('spicy')" class="px-6 py-2 bg-white border border-gray-300 hover:border-orange-600 rounded-full font-medium">Spicy</button>
+        <button onclick="filterCategory('pastries')" class="px-6 py-2 bg-white border border-gray-300 hover:border-orange-600 rounded-full font-medium">Pastries</button>
+      </div>
+
+      <!-- Responsive Grid: 2 on mobile, 4 on desktop -->
+      <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+      
+      <div id="no-products" class="hidden text-center py-20">
+        <p class="text-2xl text-gray-500">No products available yet.</p>
+        <p class="text-gray-400 mt-2">Upload products from the Admin Panel</p>
+      </div>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyDStRWH7a248AedeRgLVRHwmV4u5jpycFM",
+      authDomain: "winnes-collection.firebaseapp.com",
+      projectId: "winnes-collection",
+      storageBucket: "winnes-collection.firebasestorage.app",
+      messagingSenderId: "244146153485",
+      appId: "1:244146153485:web:effc3faa893370db8b8d44"
+    });
+
+    const db = firebase.firestore();
+
+    let allProducts = [];
+
+    async function loadProducts() {
+      const snapshot = await db.collection("products").get();
+      allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      if (allProducts.length === 0) {
+        document.getElementById('no-products').classList.remove('hidden');
+      } else {
+        renderProducts(allProducts);
+      }
+    }
+
+    function renderProducts(products) {
+      const container = document.getElementById('products-grid');
+      container.innerHTML = products.map(product => `
+        <div class="product-card bg-white rounded-3xl overflow-hidden shadow-md">
+          <div class="relative">
+            <img src="${product.imageUrl || 'https://via.placeholder.com/600x400?text=WMPKD'}" 
+                 alt="${product.name}" 
+                 class="product-image w-full h-48 sm:h-56 object-cover">
+          </div>
+          <div class="p-5">
+            <h3 class="font-bold text-lg mb-1 line-clamp-1">${product.name}</h3>
+            <p class="text-orange-600 text-2xl font-semibold mb-3">₦${product.price}</p>
+            <p class="text-gray-600 text-sm line-clamp-2 mb-6">${product.description || 'Fresh handmade snack'}</p>
+            
+            <button onclick='addToCart(${JSON.stringify(product)})' 
+                    class="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 text-sm">
+              <i class="fas fa-cart-plus"></i>
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterCategory(cat) {
+      if (cat === 'all') {
+        renderProducts(allProducts);
+      } else {
+        const filtered = allProducts.filter(p => (p.category || '').toLowerCase() === cat);
+        renderProducts(filtered);
+      }
+    }
+
+    loadProducts();
+  </script>
+</body>
+</html>
